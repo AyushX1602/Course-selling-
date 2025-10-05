@@ -1,8 +1,11 @@
 const mongoose = require('mongoose');
+require('dotenv').config();
 const ObjectId =mongoose.ObjectId; 
 const Schema = mongoose.Schema;
 
-mongoose.connect("mongodb+srv://ayushpathak16022005_db_user:sdkaLqtfFbZ7Qs0p@cluster0.nzijvyg.mongodb.net/course-selling")
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('Connected to MongoDB'))
+  .catch((error) => console.error('MongoDB connection error:', error));
 
 const userSchema = Schema({
    email: {type :String , unique : true},
