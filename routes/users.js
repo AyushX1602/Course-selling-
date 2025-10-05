@@ -16,4 +16,4 @@ UserRouter.post('/purchases', (req, res) => {
     res.json({ message: 'User purchases' });
 });
 
-module.exports = {UserRoute: UserRouter};
+module.exports = {UserRouter: UserRouter};
