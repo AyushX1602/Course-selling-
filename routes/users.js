@@ -1,42 +1,61 @@
 const {Router} = require('express');
-const { userModel } = require('../db');
+const { userModel, courseModel ,purchaseModel } = require('../db');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const{z} = require('zod');
-const { JWT_SECRET } = require('../config');
+const { JWT_user_SECRET } = require('../config');
 const UserRouter = Router();
+const { usermiddleware : userMiddleware } = require('../middleware/user');
 
 UserRouter.post('/signup',async function (req, res) {
-    
+    try {
         const requiredBody = z.object({
-        email : z.string(),
-        name : z.string(),
-        password : z.string()
-    })
-        const parsedDataWitString = requiredBody.safeParse(req.body);
-
-    if (!parsedDataWitString.success){
-        res.status(400).json({
-            message : "Invalid request body"
+            email: z.string().email(),
+            name: z.string(),
+            password: z.string().min(6)
         })
-        return;
+        
+        const parsedDataWithString = requiredBody.safeParse(req.body);
+
+        if (!parsedDataWithString.success){
+            res.status(400).json({
+                message: "Invalid request body",
+                errors: parsedDataWithString.error.errors
+            })
+            return;
+        }
+        
+        const { email, password, name } = req.body;
+
+        // Check if user already exists
+        const existingUser = await userModel.findOne({ email: email });
+        if(existingUser) {
+            return res.status(400).json({ 
+                message: "User with this email already exists" 
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 5);
+        console.log(hashedPassword);
+
+        await userModel.create({
+            email: email,
+            password: hashedPassword,
+            Fname: name,
+            Lname: name
+        })
+        
+        res.json({
+            message: "You are signed up successfully"
+        });
+
+    } catch (error) {
+        console.error("User signup error:", error);
+        res.status(500).json({
+            message: "Internal server error",
+            error: error.message
+        });
     }
-    const email = req.body.email;
-    const password = req.body.password;
-    const name = req.body.name;
-
-    const hashedPassword = await bcrypt.hash(password, 5);
-    console.log(hashedPassword);
-
-   await  userModel.create({
-        email : email,
-        password : hashedPassword,
-        firstname : name,
-        lastname: name
-    })
-    res.json({
-        message : "You are signed up "
-    });
 });
 
 
@@ -59,7 +78,7 @@ UserRouter.post('/signin',async function (req, res) {
        if (passwordMatch){
            const token = jwt.sign({
                id : user._id.toString(),
-           }, JWT_SECRET);
+           }, JWT_user_SECRET);
            res.json({
                message : "You are signed in ",
                token : token
@@ -74,18 +93,29 @@ UserRouter.post('/signin',async function (req, res) {
 
 
 
-UserRouter.put('/courses', (req, res) => {
-    res.json({ message: 'Course updated' });
+
+UserRouter.get('/purchases',userMiddleware,async function (req, res) {
+    try {
+        const userId = req.userId;
+        
+        const purchases = await purchaseModel.find({
+            user_id: userId,
+        }).populate('course_id', 'title description price imageUrl'); // This will include course details
+        
+        res.json({
+            message: "Purchases fetched successfully",
+            purchases: purchases 
+        });
+    } catch (error) {
+        console.error('Fetch purchases error:', error);
+        res.status(500).json({
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
 });
 
 
-UserRouter.get('/courses/bulk', (req, res) => {
-    res.json({ message: 'Bulk courses retrieved' });
-});
 
-
-UserRouter.post('/purchases', (req, res) => {
-    res.json({ message: 'User purchases' });
-});
 
 module.exports = {UserRouter: UserRouter};

@@ -2,20 +2,36 @@ const jwt = require('jsonwebtoken');
 const { userModel } = require('../db');
 const { JWT_user_SECRET } = require('../config');
 
-function usermiddleware(req, res, next) {
-    const token = req.headers.token;
-    const decoded=jwt.verify(token, JWT_user_SECRET);
+function userMiddleware(req, res, next) {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader) {
+        return res.status(401).json({
+            message: "Authorization header required"
+        });
+    }
 
-    if (decoded) {
-        req.userId = decoded.id;    
+    // Extract token from "Bearer <token>" format
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    
+    if (!token) {
+        return res.status(401).json({
+            message: "Authorization token required"
+        });
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_user_SECRET);
+        req.userId = decoded.id;
         next();
-    } else {
-        res.status(401).json({
-            message: "Your not signed in"
+    } catch (error) {
+        return res.status(401).json({
+            message: "Invalid token",
+            error: error.message
         });
     }
 }
 
 module.exports = {
-    usermiddleware : usermiddleware
+    usermiddleware: userMiddleware
 };
