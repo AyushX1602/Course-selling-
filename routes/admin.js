@@ -91,7 +91,7 @@ adminRouter.post('/courses', adminMiddleware, async function (req, res) {
      }); 
 });
 
-adminRouter.put('/courses', adminMiddleware,  async (req, res) => {
+adminRouter.put('/courses', adminMiddleware,  async function (req, res) {
     const adminId = req.adminId;
     const{title,description,imageurl,price} = req.body;
    const course = await courseModel.updateOne({
@@ -108,8 +108,20 @@ adminRouter.put('/courses', adminMiddleware,  async (req, res) => {
 });
 
 
-adminRouter.get('/courses/bulk', (req, res) => {
-    res.json({ message: 'Bulk courses retrieved' });
+adminRouter.get('/courses/bulk', async function (req, res)  {
+    const adminId = req.adminId;
+    const{title,description,imageurl,price} = req.body;
+   const course = await courseModel.find({
+        title : title,
+        description : description,
+        imageurl : imageurl,
+        price : price,
+        creatorId : adminId
+    })
+    res.json({
+         message: 'Course updated',
+        courseId: course._id
+     });
 });
 
 
