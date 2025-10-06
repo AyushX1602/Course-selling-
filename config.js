@@ -1,4 +1,9 @@
-const JWT_admin_SECRET = "randomnepali";
-const JWT_user_SECRET="111222333";
+require('dotenv').config();
 
-module.exports = {JWT_admin_SECRET, JWT_user_SECRET};
+const JWT_SECRET = process.env.JWT_SECRET || "your-default-secret-key";
+const JWT_ADMIN_SECRET = process.env.JWT_ADMIN_SECRET || "your-default-admin-secret";
+
+module.exports = {
+    JWT_SECRET,
+    JWT_ADMIN_SECRET
+};

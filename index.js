@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 
+
 // Import database connection
 require('./db');
 

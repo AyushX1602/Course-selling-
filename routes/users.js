@@ -3,7 +3,7 @@ const { userModel } = require('../db');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const{z} = require('zod');
-import { JWT_user_SECRET } from '../config';  
+const { JWT_SECRET } = require('../config');
 const UserRouter = Router();
 
 UserRouter.post('/signup',async function (req, res) {
