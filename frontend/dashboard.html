@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dashboard - CourseHub</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">
+                <h1><a href="index.html" style="color: white; text-decoration: none;">CourseHub</a></h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="courses.html">Courses</a></li>
+                <li><a href="dashboard.html">My Courses</a></li>
+                <li><a href="#" onclick="logout()">Logout</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="container">
+            <h1>My Purchased Courses</h1>
+            <div id="message"></div>
+            <div id="loading" class="loading">Loading your courses...</div>
+            <div id="coursesGrid" class="courses-grid"></div>
+        </div>
+    </main>
+
+    <script>
+        // Check if user is logged in
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Fetch purchased courses
+        async function loadPurchasedCourses() {
+            try {
+                const response = await fetch('http://localhost:3000/user/purchases', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                document.getElementById('loading').style.display = 'none';
+                
+                if (response.ok) {
+                    displayPurchasedCourses(data.purchases);
+                } else {
+                    document.getElementById('message').innerHTML = 
+                        '<div class="alert alert-error">Failed to load your courses</div>';
+                }
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('message').innerHTML = 
+                    '<div class="alert alert-error">Error loading courses</div>';
+            }
+        }
+
+        function displayPurchasedCourses(purchases) {
+            const coursesGrid = document.getElementById('coursesGrid');
+            
+            if (purchases.length === 0) {
+                coursesGrid.innerHTML = '<p>You haven\'t purchased any courses yet. <a href="courses.html">Browse courses</a></p>';
+                return;
+            }
+            
+            coursesGrid.innerHTML = purchases.map(purchase => {
+                const course = purchase.course_id;
+                return `
+                    <div class="course-card">
+                        <img src="${course.imgurl || 'https://via.placeholder.com/300x200'}" 
+                             alt="${course.title}" class="course-image">
+                        <div class="course-content">
+                            <h3 class="course-title">${course.title}</h3>
+                            <p class="course-description">${course.description}</p>
+                            <div class="course-price">$${course.price}</div>
+                            <button class="btn btn-success" disabled>
+                                ✓ Purchased
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Load purchased courses when page loads
+        loadPurchasedCourses();
+    </script>
+</body>
+</html>

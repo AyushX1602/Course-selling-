@@ -8,9 +8,22 @@ const{z} = require('zod');
 
 // Admin Middleware function - moved here to ensure it's defined before use
 function adminMiddleware(req, res, next) {
-    const token = req.headers.authorization;
+    const authHeader = req.headers.authorization;
+    console.log('Admin middleware - Auth header:', authHeader);
+    
+    if (!authHeader) {
+        console.log('Admin middleware - No auth header');
+        return res.status(401).json({
+            message: "Authorization header required"
+        });
+    }
+
+    // Extract token from "Bearer <token>" format
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    console.log('Admin middleware - Extracted token:', token ? 'Token present' : 'No token');
     
     if (!token) {
+        console.log('Admin middleware - No token after extraction');
         return res.status(401).json({
             message: "Authorization token required"
         });
@@ -18,11 +31,14 @@ function adminMiddleware(req, res, next) {
 
     try {
         const decoded = jwt.verify(token, JWT_ADMIN_SECRET);
+        console.log('Admin middleware - Token decoded successfully, admin ID:', decoded.id);
         req.adminId = decoded.id;
         next();
     } catch (error) {
+        console.log('Admin middleware - Token verification failed:', error.message);
         return res.status(401).json({
-            message: "Invalid token"
+            message: "Invalid token",
+            error: error.message
         });
     }
 }
@@ -204,9 +220,48 @@ adminRouter.get('/courses/bulk', adminMiddleware, async function (req, res) {
             count: courses.length
         });
     } catch (error) {
-        console.error("Courses retrieval error:", error);
+        console.error("Bulk courses fetch error:", error);
         res.status(500).json({
-            message: "Error retrieving courses",
+            message: "Error fetching courses",
+            error: error.message
+        });
+    }
+});
+
+// Delete course route
+adminRouter.delete('/courses', adminMiddleware, async function (req, res) {
+    try {
+        const adminId = req.adminId;
+        const { courseId } = req.body;
+        
+        if (!courseId) {
+            return res.status(400).json({
+                message: "Course ID is required"
+            });
+        }
+        
+        // Check if course exists and belongs to admin
+        const course = await courseModel.findOne({
+            _id: courseId,
+            creator_id: adminId
+        });
+        
+        if (!course) {
+            return res.status(404).json({
+                message: "Course not found or you don't have permission to delete it"
+            });
+        }
+        
+        await courseModel.findByIdAndDelete(courseId);
+        
+        res.json({
+            message: 'Course deleted successfully',
+            courseId: courseId
+        });
+    } catch (error) {
+        console.error("Course deletion error:", error);
+        res.status(500).json({
+            message: "Error deleting course",
             error: error.message
         });
     }

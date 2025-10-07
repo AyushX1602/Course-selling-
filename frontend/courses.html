@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Courses - CourseHub</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">
+                <h1><a href="index.html" style="color: white; text-decoration: none;">CourseHub</a></h1>
+            </div>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="courses.html">Courses</a></li>
+                <li id="authLinks">
+                    <a href="login.html">Login</a>
+                    <a href="signup.html">Signup</a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="container">
+            <h1>Available Courses</h1>
+            <div id="message"></div>
+            <div id="loading" class="loading">Loading courses...</div>
+            <div id="coursesGrid" class="courses-grid"></div>
+        </div>
+    </main>
+
+    <script>
+        // Check if user is logged in
+        const token = localStorage.getItem('token');
+        if (token) {
+            document.getElementById('authLinks').innerHTML = `
+                <a href="dashboard.html">My Courses</a>
+                <a href="#" onclick="logout()">Logout</a>
+            `;
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.reload();
+        }
+
+        // Fetch and display courses
+        async function loadCourses() {
+            try {
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                const response = await fetch('http://localhost:3000/courses/preview', {
+                    headers: headers
+                });
+                
+                const data = await response.json();
+                document.getElementById('loading').style.display = 'none';
+                
+                if (response.ok && data.courses) {
+                    displayCourses(data.courses);
+                } else {
+                    document.getElementById('message').innerHTML = 
+                        '<div class="alert alert-error">Failed to load courses</div>';
+                }
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('message').innerHTML = 
+                    '<div class="alert alert-error">Error loading courses</div>';
+            }
+        }
+
+        function displayCourses(courses) {
+            const coursesGrid = document.getElementById('coursesGrid');
+            
+            if (courses.length === 0) {
+                coursesGrid.innerHTML = '<p>No courses available</p>';
+                return;
+            }
+            
+            coursesGrid.innerHTML = courses.map(course => `
+                <div class="course-card">
+                    <img src="${course.imgurl || 'https://via.placeholder.com/300x200'}" 
+                         alt="${course.title}" class="course-image">
+                    <div class="course-content">
+                        <h3 class="course-title">${course.title}</h3>
+                        <p class="course-description">${course.description}</p>
+                        <div class="course-price">$${course.price}</div>
+                        <button onclick="purchaseCourse('${course._id}')" 
+                                class="btn ${token ? 'btn-success' : ''}"
+                                ${!token ? 'disabled' : ''}>
+                            ${token ? 'Purchase Course' : 'Login to Purchase'}
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function purchaseCourse(courseId) {
+            if (!token) {
+                alert('Please login to purchase courses');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3000/courses/purchase', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ courseId })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('message').innerHTML = 
+                        '<div class="alert alert-success">Course purchased successfully!</div>';
+                } else {
+                    document.getElementById('message').innerHTML = 
+                        `<div class="alert alert-error">${data.message}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('message').innerHTML = 
+                    '<div class="alert alert-error">Purchase failed. Please try again.</div>';
+            }
+        }
+
+        // Load courses when page loads
+        loadCourses();
+    </script>
+</body>
+</html>

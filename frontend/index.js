@@ -4,18 +4,12 @@ const app = express();
 // Import database connection
 require('./db');
 
-// CORS Configuration - Allow frontend to access backend
+// Enable CORS for HTML frontend
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        res.sendStatus(200);
-    } else {
-        next();
-    }
+    next();
 });
 
 // Middleware to parse JSON requests
